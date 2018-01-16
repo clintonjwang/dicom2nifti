@@ -100,7 +100,10 @@ def _is_mosaic(dicom_input):
     """
     # for grouped dicoms
     if type(dicom_input) is list and type(dicom_input[0]) is list:
-        header = dicom_input[0][0]
+        try:
+            header = dicom_input[0][0]
+        except:
+            return True
     else:  # all the others
         header = dicom_input[0]
 
