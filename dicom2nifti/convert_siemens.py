@@ -18,10 +18,7 @@ import logging
 import nibabel
 import numpy
 
-try:
-    from pydicom.tag import Tag
-except ImportError:
-    from dicom.tag import Tag
+from pydicom.tag import Tag
 
 import dicom2nifti.common as common
 import dicom2nifti.convert_generic as convert_generic
@@ -58,11 +55,11 @@ def is_siemens(dicom_input):
     if 'Manufacturer' not in header or 'Modality' not in header:
         return False  # we try generic conversion in these cases
 
-    if 'SIEMENS' not in header.Manufacturer.upper():
-        return False
-
     # check if Modality is mr
     if header.Modality.upper() != 'MR':
+        return False
+
+    if 'SIEMENS' not in header.Manufacturer.upper():
         return False
 
     return True

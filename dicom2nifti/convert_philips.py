@@ -17,12 +17,8 @@ import logging
 import nibabel
 import numpy
 
-try:
-    import pydicom.config as pydicom_config
-    from pydicom.tag import Tag
-except ImportError:
-    import dicom.config as pydicom_config
-    from dicom.tag import Tag
+import pydicom.config as pydicom_config
+from pydicom.tag import Tag
 
 import dicom2nifti.common as common
 import dicom2nifti.settings as settings
@@ -45,12 +41,12 @@ def is_philips(dicom_input):
     if 'Manufacturer' not in header or 'Modality' not in header:
         return False  # we try generic conversion in these cases
 
-    # check if manufacturer is Philips
-    if 'PHILIPS' not in header.Manufacturer.upper():
-        return False
-
     # check if Modality is mr
     if header.Modality.upper() != 'MR':
+        return False
+
+    # check if manufacturer is Philips
+    if 'PHILIPS' not in header.Manufacturer.upper():
         return False
 
     return True
@@ -111,6 +107,8 @@ def is_multiframe_dicom(dicom_input):
     # read dicom header
     header = dicom_input[0]
 
+    if Tag(0x0002, 0x0002) not in header.file_meta:
+        return False
     if header.file_meta[0x0002, 0x0002].value == '1.2.840.10008.5.1.4.1.1.4.1':
         return True
     return False
@@ -517,25 +515,29 @@ def _get_t_position_index(multiframe_dicom):
 
     for current_index in range(len(multiframe_dicom.DimensionIndexSequence)):
         item = multiframe_dicom.DimensionIndexSequence[current_index]
-        if 'Temporal Position Index' in item.DimensionDescriptionLabel:
+        if 'DimensionDescriptionLabel' in item and \
+                'Temporal Position Index' in item.DimensionDescriptionLabel:
             return current_index
 
     # This seems to work for most dti
     for current_index in range(len(multiframe_dicom.DimensionIndexSequence)):
         item = multiframe_dicom.DimensionIndexSequence[current_index]
-        if 'Diffusion Gradient Orientation' in item.DimensionDescriptionLabel:
+        if 'DimensionDescriptionLabel' in item and \
+                'Diffusion Gradient Orientation' in item.DimensionDescriptionLabel:
             return current_index
 
     # This seems to work for 3D grace sequences
     for current_index in range(len(multiframe_dicom.DimensionIndexSequence)):
         item = multiframe_dicom.DimensionIndexSequence[current_index]
-        if 'Effective Echo Time' in item.DimensionDescriptionLabel:
+        if 'DimensionDescriptionLabel' in item and \
+                'Effective Echo Time' in item.DimensionDescriptionLabel:
             return current_index
 
     # First try trigger delay time (inspired by http://www.dclunie.com/papers/SCAR_20040522_CTMRMF.pdf)
     for current_index in range(len(multiframe_dicom.DimensionIndexSequence)):
         item = multiframe_dicom.DimensionIndexSequence[current_index]
-        if 'Trigger Delay Time' in item.DimensionDescriptionLabel:
+        if 'DimensionDescriptionLabel' in item and \
+                'Trigger Delay Time' in item.DimensionDescriptionLabel:
             return current_index
 
     return None

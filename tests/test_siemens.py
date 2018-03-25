@@ -11,10 +11,7 @@ import unittest
 
 import dicom2nifti.compressed_dicom as compressed_dicom
 
-try:
-    import pydicom
-except ImportError:
-    import dicom as pydicom
+import pydicom
 
 import tests.test_data as test_data
 
@@ -149,6 +146,14 @@ class TestConversionSiemens(unittest.TestCase):
             convert_siemens._classic_get_grouped_dicoms(read_dicom_directory(test_data.SIEMENS_CLASSIC_FMRI)))
         assert not convert_siemens._is_classic_4d(
             convert_siemens._classic_get_grouped_dicoms(read_dicom_directory(test_data.SIEMENS_ANATOMICAL)))
+
+    def test_is_siemens(self):
+        assert not convert_siemens.is_siemens(read_dicom_directory(test_data.PHILIPS_ANATOMICAL))
+        assert convert_siemens.is_siemens(read_dicom_directory(test_data.SIEMENS_ANATOMICAL))
+        assert not convert_siemens.is_siemens(read_dicom_directory(test_data.GE_ANATOMICAL))
+        assert not convert_siemens.is_siemens(read_dicom_directory(test_data.GENERIC_ANATOMICAL))
+        assert not convert_siemens.is_siemens(read_dicom_directory(test_data.HITACHI_ANATOMICAL))
+
 
     def test_get_asconv_headers(self):
         mosaic = compressed_dicom.read_file(os.path.join(test_data.SIEMENS_FMRI, 'IM-0001-0001.dcm'))

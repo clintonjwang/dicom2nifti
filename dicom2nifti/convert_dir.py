@@ -17,12 +17,8 @@ import re
 import traceback
 import unicodedata
 
-try:
-    import pydicom
-    from pydicom.tag import Tag
-except ImportError:
-    import dicom as pydicom
-    from dicom.tag import Tag
+import pydicom
+from pydicom.tag import Tag
 
 import logging
 import six
@@ -129,7 +125,7 @@ def _is_valid_imaging_dicom(dicom_header):
             return False
 
         return True
-    except:
+    except (KeyError, AttributeError):
         return False
 
 
