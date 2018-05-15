@@ -20,7 +20,7 @@ from pydicom.tag import Tag
 import logging
 import numpy
 
-from dicom2nifti.exceptions import ConversionValidationError
+from dicom2nifti.exceptions import ConversionValidationError, ConversionError
 import dicom2nifti.settings
 
 logger = logging.getLogger(__name__)
@@ -340,6 +340,8 @@ def write_bvec_file(bvecs, bvec_file):
     :param bvecs: array with the vectors
     :param bvec_file: filepath to write to
     """
+    if bvec_file is None:
+        return
     logger.info('Saving BVEC file: %s' % bvec_file)
     with open(bvec_file, 'w') as text_file:
         # Map a dicection to string join them using a space and write to the file
@@ -355,6 +357,8 @@ def write_bval_file(bvals, bval_file):
     :param bvals: array with the values
     :param bval_file: filepath to write to
     """
+    if bval_file is None:
+        return
     logger.info('Saving BVAL file: %s' % bval_file)
     with open(bval_file, 'w') as text_file:
         # join the bvals using a space and write to the file
@@ -385,6 +389,10 @@ def create_affine(sorted_dicoms):
         step = [0, 0, -1]
     else:
         step = (image_pos - last_image_pos) / (1 - len(sorted_dicoms))
+
+    # check if this is actually a volume and not all slices on the same location
+    if numpy.linalg.norm(step) == 0.0:
+        raise ConversionError("NOT_A_VOLUME")
 
     affine = numpy.matrix([[-image_orient1[0] * delta_r, -image_orient2[0] * delta_c, -step[0], -image_pos[0]],
                            [-image_orient1[1] * delta_r, -image_orient2[1] * delta_c, -step[1], -image_pos[1]],
@@ -453,15 +461,18 @@ def validate_sliceincrement(dicoms):
     """
     first_image_position = numpy.array(dicoms[0].ImagePositionPatient)
     previous_image_position = numpy.array(dicoms[1].ImagePositionPatient)
+
     increment = first_image_position - previous_image_position
     for dicom_ in dicoms[2:]:
         current_image_position = numpy.array(dicom_.ImagePositionPatient)
         current_increment = previous_image_position - current_image_position
-        if not numpy.allclose(increment, current_increment, rtol=0.05, atol=0.05):
+        if not numpy.allclose(increment, current_increment, rtol=0.05, atol=0.1):
             logger.warning('Slice increment not consistent through all slices')
             logger.warning('---------------------------------------------------------')
             logger.warning('%s %s' % (previous_image_position, increment))
             logger.warning('%s %s' % (current_image_position, current_increment))
+            if 'InstanceNumber' in dicom_:
+                logger.warning('Instance Number: %s' % dicom_.InstanceNumber)
             logger.warning('---------------------------------------------------------')
             raise ConversionValidationError('SLICE_INCREMENT_INCONSISTENT')
         previous_image_position = current_image_position
