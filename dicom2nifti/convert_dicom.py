@@ -93,7 +93,10 @@ def dicom_series_to_nifti(original_dicom_directory, output_file=None, reorient_n
 
     finally:
         # remove the copied data
-        shutil.rmtree(temp_directory)
+        try:
+            shutil.rmtree(temp_directory)
+        except:# PermissionError:
+            print("Call shutil.rmtree on", temp_directory)
 
 
 def dicom_array_to_nifti(dicom_list, output_file, reorient_nifti=True):
